@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
+import re
 import sys
-import json
 import time
 import requests
 from typing import Dict, List, Tuple, Any
@@ -64,7 +63,9 @@ class ModelEvaluator:
             response.raise_for_status()
             
             result = response.json()
-            return result["message"]["content"].strip()
+            text = result["message"]["content"].strip()
+            text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+            return text
             
         except requests.exceptions.Timeout:
             print(f"  ⚠️  {model} 回應超時")
@@ -101,8 +102,8 @@ class ModelEvaluator:
             response.raise_for_status()
             
             result = response.json()
-            return result["choices"][0]["message"]["content"].strip()
-            
+            text = result["choices"][0]["message"]["content"].strip()
+            return text        
         except Exception as e:
             print(f"  ❌ OpenAI API 呼叫失敗: {e}")
             return f"ERROR: OpenAI API 失敗 - {e}"
@@ -145,8 +146,9 @@ class ModelEvaluator:
             system_prompt = """你是專業的翻譯評審專家。請根據以下標準對翻譯結果評分（1-10分）：
 
 評分標準：
-- 通順性（1-4分）：翻譯是否自然流暢，符合中文表達習慣
-- 準確性（1-4分）：是否有翻譯錯誤、遺漏或誤解
+- 通順性（1-3分）：翻譯是否自然流暢，符合中文表達習慣
+- 準確性（1-3分）：是否有翻譯錯誤、遺漏或誤解
+- 遵循指令(1-2分)：是否完全遵循指令，以繁體中文回覆
 - 專業術語處理（1-2分）：英文專業術語是否適當保留
 
 請以以下格式回覆：
@@ -165,8 +167,9 @@ class ModelEvaluator:
             system_prompt = """你是專業的摘要評審專家。請根據以下標準對摘要結果評分（1-10分）：
 
 評分標準：
-- 重點涵蓋（1-4分）：重要議題和關鍵成果是否有提及
-- 表達清楚（1-4分）：摘要是否條理分明、易於理解  
+- 重點涵蓋（1-3分）：重要議題和關鍵成果是否有提及
+- 表達清楚（1-3分）：摘要是否條理分明、易於理解  
+- 遵循指令(1-2分)：是否完全遵循指令，以繁體中文回覆
 - 簡潔性（1-2分）：是否避免冗餘，切中要點
 
 請以以下格式回覆：
@@ -274,6 +277,9 @@ class ModelEvaluator:
         """生成評比報表"""
         print(f"\n📊 正在生成報表...")
         
+        # 先生成圖表
+        self.create_charts()
+        
         # 建立報表內容
         report_content = self.create_markdown_report()
         
@@ -288,9 +294,6 @@ class ModelEvaluator:
         report_html_path = "reports/evaluation_report.html"
         convert_markdown_to_html(report_md_path, report_html_path)
         print(f"✅ HTML 報表已生成: {report_html_path}")
-        
-        # 生成圖表
-        self.create_charts()
         
         return report_md_path, report_html_path
 
@@ -371,6 +374,17 @@ class ModelEvaluator:
                 content += f"- **摘要任務最低分**: {min(summarize_scores)}\n"
             
             content += "\n"
+        
+        # 視覺化圖表
+        content += "## 視覺化圖表\n\n"
+        
+        for reviewer_type in REVIEWER_MODELS.keys():
+            if reviewer_type not in self.evaluation_scores:
+                continue
+                
+            chart_path = f"chart_{reviewer_type}.png"
+            content += f"### {reviewer_type.upper()} 評審結果圖表\n\n"
+            content += f"![{reviewer_type.upper()} 評審結果]({chart_path})\n\n"
         
         # 模型輸出結果
         content += "## 模型輸出結果\n\n"

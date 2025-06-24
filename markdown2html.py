@@ -29,12 +29,22 @@ def create_full_html_doc(title, body_content):
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 20px auto;
             padding: 0 20px;
         }}
         h1, h2, h3, h4, h5, h6 {{
             color: #222;
+            margin-top: 2em;
+            margin-bottom: 1em;
+        }}
+        h1 {{
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0.3em;
+        }}
+        h2 {{
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.3em;
         }}
         code {{
             background-color: #f4f4f4;
@@ -52,9 +62,52 @@ def create_full_html_doc(title, body_content):
             max-width: 100%;
             height: auto;
         }}
+        /* 表格樣式 */
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+            font-size: 0.9em;
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }}
+        th {{
+            background-color: #f2f2f2;
+            font-weight: bold;
+            text-align: center;
+        }}
+        tr:nth-child(even) {{
+            background-color: #f9f9f9;
+        }}
+        tr:hover {{
+            background-color: #f5f5f5;
+        }}
+        /* 讓表格在小螢幕上可以橫向滾動 */
+        .table-container {{
+            overflow-x: auto;
+            margin: 1em 0;
+        }}
         /* Mermaid 圖形預設置中 */
         .mermaid {{
             text-align: center;
+        }}
+        /* 區塊引用樣式 */
+        blockquote {{
+            border-left: 4px solid #ddd;
+            margin: 1em 0;
+            padding-left: 1em;
+            color: #666;
+        }}
+        /* 清單樣式 */
+        ul, ol {{
+            padding-left: 2em;
+        }}
+        li {{
+            margin: 0.5em 0;
         }}
     </style>
 </head>
@@ -74,7 +127,7 @@ def create_full_html_doc(title, body_content):
 
 def convert_markdown_to_html(input_path, output_path=None):
     """
-    將指定的 Markdown 檔案轉換為一個完整的 HTML 檔案，並支援 Mermaid 圖形。
+    將指定的 Markdown 檔案轉換為一個完整的 HTML 檔案，並支援 Mermaid 圖形和表格。
     """
     # 檢查輸入檔案是否存在
     if not os.path.exists(input_path):
@@ -82,12 +135,11 @@ def convert_markdown_to_html(input_path, output_path=None):
         sys.exit(1)
 
     # 如果未指定輸出檔名，則自動生成
-
     base_name_without_ext = os.path.splitext(input_path)[0]
     if output_path is None:
         output_path = f"{base_name_without_ext}.html"
 
-    print(f"正在將 '{input_path}' 轉換至 '{output_path}' (包含 Mermaid 支援)...")
+    print(f"正在將 '{input_path}' 轉換至 '{output_path}' (包含 Mermaid 和表格支援)...")
 
     try:
         # 讀取 Markdown 檔案內容
@@ -106,10 +158,18 @@ def convert_markdown_to_html(input_path, output_path=None):
             }
         }
 
-        # 執行轉換，啟用擴充套件
+        # 執行轉換，啟用多個擴充套件
         html_fragment = markdown(
             markdown_text,
-            extensions=['pymdownx.superfences'],
+            extensions=[
+                'tables',           # 支援表格
+                'fenced_code',      # 支援程式碼區塊
+                'codehilite',       # 程式碼語法高亮
+                'toc',              # 目錄生成
+                'pymdownx.superfences',  # 支援 Mermaid
+                'nl2br',            # 換行轉換
+                'sane_lists'        # 改善清單處理
+            ],
             extension_configs=extension_configs
         )
 
@@ -123,7 +183,7 @@ def convert_markdown_to_html(input_path, output_path=None):
         with open(output_path, 'w', encoding='utf-8') as f_out:
             f_out.write(full_html)
             
-        print("✅ 轉換成功！已生成支援 Mermaid 的 HTML 檔案。")
+        print("✅ 轉換成功！已生成支援 Mermaid 和表格的 HTML 檔案。")
 
     except Exception as e:
         print(f"轉換過程中發生錯誤：{e}", file=sys.stderr)

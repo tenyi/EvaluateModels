@@ -2,6 +2,7 @@
 __pycache__/
 
 .jj/
+reports/
 
 *.py[cod]
 *$py.class

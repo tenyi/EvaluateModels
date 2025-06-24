@@ -1,296 +1,99 @@
-[00:00:00.000 --> 00:00:22.960]
 Hello everyone, thanks for joining, my name is Titus Kurek, I am a product manager at Canonical, and today together with our partner from cloud-based solutions, Gabriel Sanfira, we are going to present a webinar from VMware to Charmed OpenStack.
-
-[00:00:22.960 --> 00:00:28.340]
 We're going to navigate through a comparison between VMware and OpenStack suites,
-
-[00:00:28.340 --> 00:00:32.800]
 and try to find a common ground so that we could compare apples to apples.
-
-[00:00:32.800 --> 00:00:46.620]
 Later, I'm going to show the benefits of using Charmed OpenStack, such as efficiency and flexibility, and discuss what makes Charmed OpenStack different from any other OpenStacks available there.
-
-[00:00:46.620 --> 00:00:57.600]
 We'll later run a sample cost scenario showing how you can reduce both capex and opex by migrating from VMware virtualization platform
-
-[00:00:57.600 --> 00:00:59.800]
 to Charmed OpenStack.
-
-[00:00:59.800 --> 00:01:13.520]
 Finally, with the help of our partner, we're going to demonstrate how you can migrate your workloads from VMware to Charmed OpenStack, and then we'll wrap it up and open it up for your questions.
-
-[00:01:13.520 --> 00:01:17.960]
 Before we start, let's take a look on the background.
-
-[00:01:17.960 --> 00:01:26.920]
 The story begins a few years ago, when organizations have started virtualizing their IT workloads and migrating from legacy,
-
-[00:01:26.920 --> 00:01:30.800]
 monolithic infrastructure to cloud environments.
-
-[00:01:30.800 --> 00:01:39.200]
 The migration was mostly driven by a constantly growing TCO associated with maintaining the legacy infrastructure.
-
-[00:01:39.200 --> 00:01:46.720]
 In search of reduced costs, many chose VMware as a provider for their virtualized infrastructure.
-
-[00:01:46.720 --> 00:01:56.800]
 They were hoping that moving to virtualized environments and running workloads on a shared hardware is sufficient to get both capex and opex costs
-
-[00:01:56.800 --> 00:01:57.880]
 down.
-
-[00:01:57.880 --> 00:02:11.579]
 However, because of the costs associated with VMware licensing, support, and professional services, many are not able to meet their primary goal, significantly reduced TCO.
-
-[00:02:11.579 --> 00:02:16.419]
 Instead, they found out that the TCO is still growing.
-
-[00:02:16.419 --> 00:02:24.160]
 In search of alternative solutions, organizations have recently started exploring other platforms, such as OpenStack.
-
-[00:02:24.160 --> 00:02:29.060]
 So let's now have a look on these two technologies that matter today.
-
-[00:02:29.060 --> 00:02:34.019]
 We're going to start with the VMware virtualization platform.
-
-[00:02:34.019 --> 00:02:49.660]
 If you research VMware, you're going to find out that what VMware offers today is so called vrealize suite, which is available in three different types, standard, advanced, and enterprise.
-
-[00:02:49.660 --> 00:02:54.120]
 And the main difference between these three are the components attached.
-
-[00:02:54.120 --> 00:03:09.760]
 So for example, moving from standard to advanced is going to give you additional two components, vrealize automation advanced and vrealize business for cloud advanced, while moving from advanced to enterprise.
-
-[00:03:13.120 --> 00:03:19.800]
 This is vrealize automation enterprise and vrealize operations enterprise.
-
-[00:03:19.800 --> 00:03:23.160]
 What is common between these three is a
-
-[00:03:23.160 --> 00:03:47.740]
 licensing model, which currently is based on a portable license unit or a PLU, which is assigned for either one vSphere CPU or fifteen non-vSphere OSes, which basically means that for every fifteen virtual machines or for every CPU, you need a separate portable license unit.
-
-[00:03:47.740 --> 00:03:49.860]
 For the purposes of today,
-
-[00:03:49.860 --> 00:03:57.060]
 we are going to focus on the advanced offering of VMware vrealize suite or the advanced version.
-
-[00:03:57.060 --> 00:04:12.100]
 And this is because it is most closely resembling what OpenStack provides today, and even more importantly, what Charmed OpenStack provides today, so that we would be able to make the apples to apples comparison.
-
-[00:04:12.100 --> 00:04:17.540]
 When we take a look on the VMware suite, there are various components which build it up.
-
-[00:04:17.540 --> 00:04:19.220]
 What we have on the top are
-
-[00:04:19.220 --> 00:04:35.020]
 components responsible for hypervisor and SDN management and vrealize orchestration, plus VMware NSX and SDN itself.
-
-[00:04:35.020 --> 00:04:42.100]
 While what follows in the middle are all components responsible for performance and capacity management.
-
-[00:04:42.100 --> 00:04:47.980]
 This includes vrealize operations manager, vrealize business for cloud,
-
-[00:04:47.980 --> 00:04:50.780]
 and vrealize infrastructure navigator.
-
-[00:04:50.780 --> 00:05:11.060]
 There is a PaaS component, vrealize application service, there is an IaaS component, vrealize automation, and various components which build the business continuity and disaster recovery piece, vSphere replication, vSphere data protection, and site recovery manager.
-
-[00:05:11.060 --> 00:05:17.960]
 In turn, when we take a look on the Charmed OpenStack suite, it consists of the following components.
-
-[00:05:17.960 --> 00:05:20.520]
 Let's start from the bottom.
-
-[00:05:20.520 --> 00:05:34.440]
 So you can run Charmed OpenStack on top of certified hardware, or you can run it in a public cloud, or you can obviously also run it on top of your VMware virtualization environment.
-
-[00:05:34.440 --> 00:05:44.979]
 We use Ubuntu operating system as a base, and now, as depicted on the right, there is Charmed OpenStack Infrastructure as a Service cloud.
-
-[00:05:44.979 --> 00:05:47.599]
 It consists of the following components.
-
-[00:05:47.600 --> 00:05:53.860]
 Compute, Network, Storage, and other OpenStack shared services.
-
-[00:05:57.300 --> 00:06:01.100]
 But you can also use other hypervisors.
-
-[00:06:01.100 --> 00:06:04.860]
 As for the SDN, it's really an SDN of your choice.
-
-[00:06:04.860 --> 00:06:15.380]
 And for storage purposes, you can use Ceph and Swift for image, block, and object storage, respectively.
-
-[00:06:15.380 --> 00:06:24.540]
 Now on top of the OpenStack cloud you can run your application workloads, but you can also run them on top of Kubernetes.
-
-[00:06:24.540 --> 00:06:33.980]
 So Kubernetes is usually deployed on top of OpenStack, but you can also run Kubernetes directly on bare metal.
-
-[00:06:33.980 --> 00:06:43.219]
 And now, as depicted on the left, there is a bunch of Ubuntu cloud tools which are used to operate the whole environment.
-
-[00:06:43.220 --> 00:06:50.780]
 Those consist of three main components, service management, log management, and monitoring.
-
-[00:06:50.780 --> 00:07:03.900]
 As for the service management, we use Mass, Metal as a Service, which is a server provisioning tool, which basically allows you to automate bare metal provisioning.
-
-[00:07:03.900 --> 00:07:12.460]
 And we use Juju, the application modeling tool, which allows you to deploy and operate your OpenStack cloud
-
-[00:07:12.460 --> 00:07:15.780]
 in an efficient and flexible way.
-
-[00:07:15.780 --> 00:07:24.340]
 As for the log management, we recommend the ELK stack, Elasticsearch Logstash and Kibana.
-
-[00:07:24.340 --> 00:07:29.620]
 While for monitoring, you can use Landscape, Nagios, and Prometheus.
-
-[00:07:29.620 --> 00:07:40.460]
 Now, as we know the components which build up VMware vRealize Suite and Charmed OpenStack Suite, we can make a detailed comparison between these two platforms,
-
-[00:07:40.460 --> 00:07:44.140]
 and we can do it by the features they provide.
-
-[00:07:44.140 --> 00:07:48.740]
 So let's start with the hypervisor management and self-service portal.
-
-[00:07:48.740 --> 00:08:03.540]
 OpenStack has two built-in components, Nova and Horizon, which provide these two features, while on the VMware side we have vCenter Server and vRealize automation.
-
-[00:08:03.540 --> 00:08:07.900]
 For orchestration and application deployment,
-
-[00:08:07.900 --> 00:08:09.540]
 Canonical provides Juju,
-
-[00:08:09.540 --> 00:08:21.100]
 the application modeling tool, which can be used to model and deploy and orchestrate workloads on both infrastructure and application layer.
-
-[00:08:21.100 --> 00:08:29.260]
 For monitoring and log management purposes, we provide the LMA stack that was presented on a previous slide.
-
-[00:08:29.260 --> 00:08:37.720]
 Charmed OpenStack does not have any built-in billing tool, but you can easily integrate any third-party tools with it.
-
-[00:08:37.720 --> 00:08:49.080]
 And now what makes a core difference between VMware and Charmed OpenStack, and basically any other OpenStack available on the market, are the hypervisor and SDN.
-
-[00:08:49.080 --> 00:08:57.320]
 VMware provides hypervisor and SDN that it brings, those are ESXi and NSX.
-
-[00:08:57.320 --> 00:09:07.180]
 While in Charmed OpenStack, we can use KVM by default, but you can also use any other hypervisor that is available.
-
-[00:09:07.180 --> 00:09:15.560]
 And the same story applies to SDN, you can basically use any SDN that is currently available on the market.
-
-[00:09:15.560 --> 00:09:22.140]
 So at this point, one can ask a question, what about VMware-integrated OpenStack?
-
-[00:09:22.140 --> 00:09:28.620]
 VMware provides an integrated OpenStack that you can run on top of its virtualization infrastructure.
-
-[00:09:28.620 --> 00:09:35.180]
 There are some drawbacks associated with this solution, however, which includes vendor lock-in.
-
-[00:09:35.180 --> 00:09:39.040]
 You are still running on the top of VMware, aren't you?
-
-[00:09:39.040 --> 00:09:42.820]
 It adds more complexity to complex enough environment.
-
-[00:09:42.820 --> 00:09:45.620]
 You do not benefit from reduced costs.
-
-[00:09:45.620 --> 00:09:52.140]
 You still have to pay for VMware licensing, support and subscription, and professional services.
-
-[00:09:52.140 --> 00:09:57.500]
 And finally, you do not benefit from other features of Charmed OpenStack.
-
-[00:09:57.552 --> 00:10:04.212]
 So let's move to the next section now and talk more about what makes Charmed OpenStack different.
-
-[00:10:04.212 --> 00:10:10.932]
 Among various reasons to choose Charmed OpenStack, these top five are the most important to remember.
-
-[00:10:10.932 --> 00:10:21.572]
 Number one, technology choices of Charmed OpenStack are very wide, especially in terms of networking, storage and hypervisor,
-
-[00:10:21.572 --> 00:10:29.032]
 but also including integration with disaster recovery and backup solutions and migration tools.
-
-[00:10:29.032 --> 00:10:32.412]
 Number two, predictable release cadence.
-
-[00:10:32.412 --> 00:10:36.992]
 So Charmed OpenStack has very predictable release cadence.
-
-[00:10:36.992 --> 00:10:48.292]
 Basically, every six months there is a new version of OpenStack available, and within the weeks of release, Canonical provides support for the new version.
-
-[00:10:48.292 --> 00:10:51.332]
 Moreover, every two years, there is an
-
-[00:10:51.332 --> 00:10:56.972]
 LTS long-time supported version of OpenStack released by Canonical.
-
-[00:10:56.972 --> 00:11:08.432]
 And finally, OpenStack releases are tied into Ubuntu releases, so there is a clear upgrade path from the older versions to the newer ones.
-
-[00:11:08.432 --> 00:11:18.852]
 There is a high velocity of development and innovation in Charmed OpenStack as it usually is in any other open source projects.
-
-[00:11:18.852 --> 00:11:20.572]
 Apart from the
-
-[00:11:20.572 --> 00:11:47.532]
 core OpenStack components such as Nova, Neutron, Keystone, Swift, Cinder and Glance, Charmed OpenStack also provides a full support for the components like Horizon Dashboard, Manila Shared File System, Barbican Key Management, Salometer for telemetry, Heat War, Workloads Orchestration and Designate DNS service.
-
-[00:11:47.532 --> 00:11:49.332]
 One of the core reasons
-
-[00:11:49.332 --> 00:11:56.372]
 to choose Charmed OpenStack are simplified deployments and operations, thanks to the usage of Juju charms.
-
-[00:11:56.372 --> 00:12:06.632]
 A charm is a collection of scripts and metadata which contain all necessary logic required to install, configure, and operate your applications.
-
-[00:12:06.632 --> 00:12:15.292]
 They basically contain a distilled knowledge of experts in the field from Canonical and other companies, which is written in a form of a code.
-
-[00:12:15.292 --> 00:12:16.852]
 Charms also use
-
-[00:12:16.852 --> 00:12:27.212]
 so called declarative DevOps approach, which contrary to the imperative DevOps approach allows you to focus on the what instead of the how question.
-
-[00:12:27.212 --> 00:12:44.672]
 By using declarative DevOps approach, you can easily deploy your OpenStack by just specifying a number of machines to be deployed, placing services across the machines, adding or removing certain services, or turning on or off certain features.
-
-[00:12:44.672 --> 00:12:53.312]
 This model is later defined in a form of a YAML file, which is later used by Juju to deploy your OpenStack.
-
-[00:12:53.312 --> 00:13:01.572]
 While certain operations are performed by charms, the Juju controller is managing all of those operations.
-
-[00:13:01.572 --> 00:13:14.052]
 Charms can also significantly simplify daily operational tasks such as OpenStack upgrades, database backups, or scaling out your cloud environment.
-
-[00:13:14.052 --> 00:13:18.972]
 Last but not least, economics as always plays a huge role.
-
-[00:13:18.972 --> 00:13:25.052]
 By using charmed OpenStack you can ensure reduction of both Capex and Opex costs.
