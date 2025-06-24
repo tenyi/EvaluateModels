@@ -1,0 +1,23 @@
+
+OLLAMA_API_BASE_URL = "http://localhost:11434"
+OLLAMA_MODELS_TO_COMPARE = ["llama2", "gemma"] # 例如: ["llama2", "mistral"]
+
+# 將您的 API 金鑰替換為實際值，如果沒有則留空字串
+OPENAI_API_KEY = "your_openai_api_key_here"
+GOOGLE_API_KEY = "your_google_api_key_here"
+DEEPSEEK_API_KEY = "your_deepseek_api_key_here"
+
+# 配置審閱者模型
+# 範例: {"openai": "gpt-4o-mini", "gemini": "gemini-1.5-flash-latest", "deepseek": "deepseek-chat"}
+REVIEWER_MODELS = {
+    "openai": None,  # 例如: "gpt-4o-mini"
+    "gemini": None,  # 例如: "gemini-1.5-flash-latest"
+    "deepseek": None,  # 例如: "deepseek-chat"
+}
+
+# 支援的任務及其提示詞
+SUPPORTED_TASKS = {
+    "summarize": "summarize the following text:",
+    "translate": "translate the following text to English:",
+    # 您可以在此處新增更多任務
+}
