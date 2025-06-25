@@ -11,14 +11,17 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import numpy as np
 from config import (
-    OLLAMA_API_BASE_URL, 
-    OLLAMA_MODELS_TO_COMPARE, 
-    OPENAI_API_KEY, 
+    OLLAMA_API_BASE_URL,
+    OLLAMA_MODELS_TO_COMPARE,
+    OPENAI_API_KEY,
     GOOGLE_API_KEY,
-    REVIEWER_MODELS, 
+    OPENROUTER_API_KEY,  # Added
+    REPLICATE_API_KEY,  # Added
+    REVIEWER_MODELS,
     SUPPORTED_TASKS
 )
 from markdown2html import convert_markdown_to_html
+from cache_utils import get_cache_key, load_from_cache, save_to_cache # Added
 
 # 設定中文字體
 plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'SimHei', 'DejaVu Sans']
@@ -43,6 +46,13 @@ class ModelEvaluator:
 
     def call_ollama_api(self, model: str, task: str, text: str) -> str:
         """呼叫 Ollama API"""
+        cache_params = {"provider": "ollama", "model": model, "task": task, "text": text}
+        cache_key = get_cache_key(cache_params)
+        cached_response = load_from_cache(cache_key)
+        if cached_response:
+            print(f"  ✅ {model} ({task}) 從快取載入")
+            return cached_response
+
         url = f"{OLLAMA_API_BASE_URL}/api/chat"
         headers = {"Content-Type": "application/json"}
         
@@ -63,9 +73,10 @@ class ModelEvaluator:
             response.raise_for_status()
             
             result = response.json()
-            text = result["message"]["content"].strip()
-            text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
-            return text
+            output_text = result["message"]["content"].strip()
+            output_text = re.sub(r'<think>.*?</think>', '', output_text, flags=re.DOTALL)
+            save_to_cache(cache_key, output_text)
+            return output_text
             
         except requests.exceptions.Timeout:
             print(f"  ⚠️  {model} 回應超時")
@@ -77,8 +88,15 @@ class ModelEvaluator:
             print(f"  ❌ {model} 處理回應時發生錯誤: {e}")
             return f"ERROR: 處理回應失敗 - {e}"
 
-    def call_openai_api(self, model: str, system_prompt: str, user_content: str) -> str:
+    def call_openai_api(self, model: str, system_prompt: str, user_content: str, is_reviewer: bool = False) -> str:
         """呼叫 OpenAI API"""
+        cache_params = {"provider": "openai", "model": model, "system_prompt": system_prompt, "user_content": user_content, "is_reviewer": is_reviewer}
+        cache_key = get_cache_key(cache_params)
+        cached_response = load_from_cache(cache_key)
+        if cached_response:
+            print(f"  ✅ OpenAI ({model}) 從快取載入")
+            return cached_response
+
         if not OPENAI_API_KEY or OPENAI_API_KEY == "your_openai_api_key_here":
             return "ERROR: OpenAI API 金鑰未設定"
             
@@ -98,18 +116,27 @@ class ModelEvaluator:
         }
         
         try:
+            print(f"  🔄 正在呼叫 OpenAI API ({model})...")
             response = requests.post(url, headers=headers, json=data, timeout=60)
             response.raise_for_status()
             
             result = response.json()
-            text = result["choices"][0]["message"]["content"].strip()
-            return text        
+            output_text = result["choices"][0]["message"]["content"].strip()
+            save_to_cache(cache_key, output_text)
+            return output_text
         except Exception as e:
             print(f"  ❌ OpenAI API 呼叫失敗: {e}")
             return f"ERROR: OpenAI API 失敗 - {e}"
 
-    def call_google_api(self, model: str, system_prompt: str, user_content: str) -> str:
+    def call_google_api(self, model: str, system_prompt: str, user_content: str, is_reviewer: bool = False) -> str:
         """呼叫 Google Gemini API"""
+        cache_params = {"provider": "google", "model": model, "system_prompt": system_prompt, "user_content": user_content, "is_reviewer": is_reviewer}
+        cache_key = get_cache_key(cache_params)
+        cached_response = load_from_cache(cache_key)
+        if cached_response:
+            print(f"  ✅ Google ({model}) 從快取載入")
+            return cached_response
+
         if not GOOGLE_API_KEY or GOOGLE_API_KEY == "your_google_api_key_here":
             return "ERROR: Google API 金鑰未設定"
             
@@ -128,15 +155,147 @@ class ModelEvaluator:
         }
         
         try:
+            print(f"  🔄 正在呼叫 Google API ({model})...")
             response = requests.post(url, headers=headers, json=data, timeout=60)
             response.raise_for_status()
             
             result = response.json()
-            return result["candidates"][0]["content"]["parts"][0]["text"].strip()
+            output_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+            save_to_cache(cache_key, output_text)
+            return output_text
             
         except Exception as e:
             print(f"  ❌ Google API 呼叫失敗: {e}")
             return f"ERROR: Google API 失敗 - {e}"
+
+    def call_openrouter_api(self, model: str, system_prompt: str, user_content: str, is_reviewer: bool = False) -> str:
+        """呼叫 OpenRouter API"""
+        cache_params = {"provider": "openrouter", "model": model, "system_prompt": system_prompt, "user_content": user_content, "is_reviewer": is_reviewer}
+        cache_key = get_cache_key(cache_params)
+        cached_response = load_from_cache(cache_key)
+        if cached_response:
+            print(f"  ✅ OpenRouter ({model}) 從快取載入")
+            return cached_response
+
+        if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "your_openrouter_api_key_here":
+            return "ERROR: OpenRouter API 金鑰未設定"
+
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "HTTP-Referer": "http://localhost", # Optional, for analytics
+            "X-Title": "Ollama Model Evaluator" # Optional, for analytics
+        }
+
+        data = {
+            "model": model, # e.g., "mistralai/mistral-7b-instruct"
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+            "temperature": 0.1
+        }
+
+        try:
+            print(f"  🔄 正在呼叫 OpenRouter API ({model})...")
+            response = requests.post(url, headers=headers, json=data, timeout=60)
+            response.raise_for_status()
+
+            result = response.json()
+            output_text = result["choices"][0]["message"]["content"].strip()
+            save_to_cache(cache_key, output_text)
+            return output_text
+        except Exception as e:
+            print(f"  ❌ OpenRouter API 呼叫失敗: {e}")
+            return f"ERROR: OpenRouter API 失敗 - {e}"
+
+    def call_replicate_api(self, model_version: str, system_prompt: str, user_content: str, is_reviewer: bool = False) -> str:
+        """呼叫 Replicate API"""
+        # model_version is typically in "owner/model_name:version_hash" format
+        cache_params = {"provider": "replicate", "model_version": model_version, "system_prompt": system_prompt, "user_content": user_content, "is_reviewer": is_reviewer}
+        cache_key = get_cache_key(cache_params)
+        cached_response = load_from_cache(cache_key)
+        if cached_response:
+            print(f"  ✅ Replicate ({model_version}) 從快取載入")
+            return cached_response
+
+        if not REPLICATE_API_KEY or REPLICATE_API_KEY == "your_replicate_api_key_here":
+            return "ERROR: Replicate API 金鑰未設定"
+
+        url = "https://api.replicate.com/v1/predictions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Token {REPLICATE_API_KEY}"
+        }
+
+        # Constructing input based on common Replicate model patterns.
+        # This might need adjustment based on the specific model.
+        # Typically, Replicate models take a prompt or a structured input.
+        # For chat-like models, combining system and user prompt is common.
+        full_prompt = f"{system_prompt}\n\nUser: {user_content}\nAssistant:"
+
+        data = {
+            "version": model_version.split(':')[-1] if ':' in model_version else model_version, # Expects version hash
+            "input": {
+                "prompt": full_prompt,
+                "system_prompt": system_prompt, # Some models might use this explicitly
+                # Common parameters, adjust as needed for specific models
+                "temperature": 0.1,
+                "max_new_tokens": 1024, # Example, adjust
+            }
+        }
+
+        try:
+            print(f"  🔄 正在呼叫 Replicate API ({model_version})...")
+            # Start prediction
+            response = requests.post(url, headers=headers, json=data, timeout=30)
+            response.raise_for_status()
+            prediction_start_result = response.json()
+
+            prediction_id = prediction_start_result.get("id")
+            if not prediction_id:
+                return f"ERROR: Replicate API 未返回有效的 prediction ID - {prediction_start_result.get('detail', '無詳細錯誤')}"
+
+            # Poll for result
+            prediction_url = f"https://api.replicate.com/v1/predictions/{prediction_id}"
+            max_retries = 20 # ~100 seconds
+            retry_interval = 5 # seconds
+
+            for _ in range(max_retries):
+                time.sleep(retry_interval)
+                poll_response = requests.get(prediction_url, headers=headers, timeout=30)
+                poll_response.raise_for_status()
+                poll_result = poll_response.json()
+
+                status = poll_result.get("status")
+                if status == "succeeded":
+                    # Output format varies; often it's a list of strings or a single string.
+                    # Adapting for a common case where output is a list of strings (joined).
+                    output = poll_result.get("output")
+                    if isinstance(output, list):
+                        output_text = "".join(output).strip()
+                    elif isinstance(output, str):
+                        output_text = output.strip()
+                    else:
+                        return f"ERROR: Replicate API 返回了未知的輸出格式: {type(output)}"
+
+                    save_to_cache(cache_key, output_text)
+                    return output_text
+                elif status == "failed" or status == "canceled":
+                    error_detail = poll_result.get("error", "未知錯誤")
+                    return f"ERROR: Replicate 預測失敗或取消 - {error_detail}"
+                # Continue polling if status is "starting" or "processing"
+
+            return f"ERROR: Replicate 預測超時 ({model_version})"
+
+        except requests.exceptions.RequestException as e:
+            print(f"  ❌ Replicate API 呼叫失敗: {e}")
+            return f"ERROR: Replicate API 請求失敗 - {e}"
+        except Exception as e:
+            print(f"  ❌ Replicate API 處理時發生錯誤: {e}")
+            return f"ERROR: Replicate API 錯誤 - {e}"
+
 
     def evaluate_with_reviewer(self, reviewer_type: str, reviewer_model: str, task: str, 
                              original_text: str, model_output: str) -> Tuple[int, str]:
@@ -186,9 +345,14 @@ class ModelEvaluator:
         
         # 呼叫對應的評審 API
         if reviewer_type == "openai":
-            response = self.call_openai_api(reviewer_model, system_prompt, user_content)
+            response = self.call_openai_api(reviewer_model, system_prompt, user_content, is_reviewer=True)
         elif reviewer_type == "gemini":
-            response = self.call_google_api(reviewer_model, system_prompt, user_content)
+            response = self.call_google_api(reviewer_model, system_prompt, user_content, is_reviewer=True)
+        elif reviewer_type == "openrouter":
+            response = self.call_openrouter_api(reviewer_model, system_prompt, user_content, is_reviewer=True)
+        elif reviewer_type == "replicate":
+            # Replicate API needs the model version, which is reviewer_model here
+            response = self.call_replicate_api(reviewer_model, system_prompt, user_content, is_reviewer=True)
         else:
             return 0, "ERROR: 不支援的評審模型類型"
         

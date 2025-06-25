@@ -106,11 +106,17 @@ OLLAMA_MODELS_TO_COMPARE = [
 # API 金鑰設定
 OPENAI_API_KEY = "your_openai_api_key_here"
 GOOGLE_API_KEY = "your_google_api_key_here"
+# 新增金鑰 (vNEXT - 請從 config.py.example 複製最新)
+OPENROUTER_API_KEY = "your_openrouter_api_key_here"
+REPLICATE_API_KEY = "your_replicate_api_key_here"
+
 
 # 評審模型設定
 REVIEWER_MODELS = {
     "openai": "gpt-4o-mini",  # 或 gpt-4
-    "gemini": "gemini-1.5-flash-latest"  # 或其他 Gemini 模型
+    "gemini": "gemini-1.5-flash-latest",  # 或其他 Gemini 模型
+    "openrouter": "mistralai/mistral-7b-instruct", # 或 "xai-research/grok-1"
+    "replicate": "meta/meta-llama-3-70b-instruct:096394a330869f80fc22939960bb01f805051b6558178033ab8403439211786e" # 範例，請替換成您想用的模型版本
 }
 
 # 支援的評比任務
@@ -131,6 +137,29 @@ SUPPORTED_TASKS = {
 1. 前往 [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. 建立新的 API 金鑰
 3. 將金鑰填入 `config.py` 的 `GOOGLE_API_KEY`
+
+#### OpenRouter API
+1. 前往 [OpenRouter.ai](https://openrouter.ai/keys)
+2. 建立新的 API 金鑰
+3. 將金鑰填入 `config.py` 的 `OPENROUTER_API_KEY`
+
+#### Replicate API
+1. 前往 [Replicate](https://replicate.com/account/api-tokens)
+2. 複製或建立新的 API Token
+3. 將 Token 填入 `config.py` 的 `REPLICATE_API_KEY`
+
+## ✨ 新功能：API 結果快取
+
+為了提升效率並減少重複的 API 呼叫，系統現在具備了 API 結果快取功能：
+- **運作方式**：首次呼叫 API (Ollama, OpenAI, Google, OpenRouter, Replicate) 時，其結果會被儲存。後續若遇到完全相同的請求（相同的模型、輸入、任務等），系統將直接從快取中讀取結果，而不再重新呼叫 API。
+- **快取位置**：快取檔案儲存於專案根目錄下的 `cache/` 資料夾中。每個快取檔案以請求參數的 MD5 雜湊值命名。
+- **優點**：
+    - **節省時間**：對於重複的測試或評審，顯著加快執行速度。
+    - **節省成本**：減少對付費 API (如 OpenAI, Google Cloud, OpenRouter, Replicate) 的呼叫次數。
+    - **開發便利**：在開發和測試階段，可以快速重現結果，無需等待 API 回應。
+- **注意事項**：
+    - 如果您更改了輸入文本 (`input.txt`) 或 `config.py` 中的模型/提示詞設定，快取將不會被使用，系統會重新呼叫 API 並儲存新的結果。
+    - 若要強制清除快取，您可以手動刪除 `cache/` 資料夾內的檔案。
 
 ## 📊 評比項目
 
@@ -204,8 +233,9 @@ graph LR
 ```
 
 ### 🔧 技術特色
-- **🔗 API 整合**：同時整合 Ollama、OpenAI、Google APIs
-- **⚡ 異步處理**：批量處理多個模型避免阻塞
+- **🔗 API 整合**：同時整合 Ollama、OpenAI、Google、OpenRouter、Replicate APIs
+- **⚡ 異步處理**：批量處理多個模型避免阻塞 (Replicate API 呼叫包含輪詢邏輯)
+- **💾 結果快取**：自動快取 API 結果，節省時間與成本 (詳見 [API 結果快取](#-新功能api-結果快取) 章節)
 - **🛡️ 錯誤處理**：完整的異常處理和重試機制
 - **📊 資料處理**：使用 matplotlib 和 numpy 進行數據分析
 
@@ -227,13 +257,16 @@ EvaluateModels/
 ├── ⚙️ config.py                    # 實際設定檔（使用者建立）
 ├── 📖 input.txt                    # 測試樣本文件
 ├── 🚀 main.py                      # 主程式入口
-├── 🔧 translator_ollama.py         # Ollama API 工具函數
+├── 🔧 translator_ollama.py         # Ollama API 工具函數 (部分功能已整合至 main.py)
 ├── 🌐 markdown2html.py             # HTML 轉換工具
+├── 💾 cache_utils.py               # 快取工具函數 (新)
+├── 🗂️ cache/                      # API 結果快取目錄 (新)
 ├── 🗂️ reports/                    # 報表輸出目錄
 │   ├── 📊 evaluation_report.md     # Markdown 報表
 │   ├── 🌐 evaluation_report.html   # HTML 報表  
 │   ├── 📈 chart_openai.png         # OpenAI 評審圖表
-│   └── 📈 chart_gemini.png         # Gemini 評審圖表
+│   ├── 📈 chart_gemini.png         # Gemini 評審圖表
+│   └── ...                         # 其他評審模型的圖表 (例如 chart_openrouter.png)
 ├── 🗂️ __pycache__/                # Python 快取目錄
 └── 📄 .gitignore                   # Git 忽略檔案設定
 ```

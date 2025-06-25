@@ -6,13 +6,17 @@ OLLAMA_MODELS_TO_COMPARE = ["llama2", "gemma"] # 例如: ["llama2", "mistral"]
 OPENAI_API_KEY = "your_openai_api_key_here"
 GOOGLE_API_KEY = "your_google_api_key_here"
 DEEPSEEK_API_KEY = "your_deepseek_api_key_here"
+OPENROUTER_API_KEY = "your_openrouter_api_key_here"  # 新增 OpenRouter API 金鑰
+REPLICATE_API_KEY = "your_replicate_api_key_here"  # 新增 Replicate API 金鑰
 
 # 配置審閱者模型
-# 範例: {"openai": "gpt-4o-mini", "gemini": "gemini-1.5-flash-latest", "deepseek": "deepseek-chat"}
+# 範例: {"openai": "gpt-4o-mini", "gemini": "gemini-1.5-flash-latest", "deepseek": "deepseek-chat", "openrouter": "mistralai/mistral-7b-instruct", "replicate": "owner/model_name:version"}
 REVIEWER_MODELS = {
     "openai": None,  # 例如: "gpt-4o-mini"
     "gemini": None,  # 例如: "gemini-1.5-flash-latest"
     "deepseek": None,  # 例如: "deepseek-chat"
+    "openrouter": None, # 例如: "mistralai/mistral-7b-instruct" 或 "xai-research/grok-1"
+    "replicate": None, # 例如: "meta/meta-llama-3-70b-instruct:096394a330869f80fc22939960bb01f805051b6558178033ab8403439211786e"
 }
 
 # 支援的任務及其提示詞
