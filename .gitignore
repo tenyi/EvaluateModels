@@ -1,8 +1,19 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
+cache/
+
+.cursor/
+
+CLAUDE.md
+
+.vscode/
+.windsurf/
+
 .jj/
+
 reports/
+
 
 *.py[cod]
 *$py.class

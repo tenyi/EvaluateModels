@@ -9,7 +9,7 @@ import requests
 from typing import Tuple
 from datetime import datetime
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
+# import matplotlib.font_manager as fm
 import numpy as np
 from config import (
     OLLAMA_API_BASE_URL,
@@ -61,10 +61,10 @@ class ModelEvaluator:
             print(f"  ✅ {model} ({task}) 從快取載入")
             return cached_response
 
-        url = f"{OLLAMA_API_BASE_URL}/api/chat"
-        headers = {"Content-Type": "application/json"}
+        url: np.LiteralString = f"{OLLAMA_API_BASE_URL}/api/chat"
+        headers: dict[str, str] = {"Content-Type": "application/json"}
 
-        prompt = SUPPORTED_TASKS[task]
+        prompt: str = SUPPORTED_TASKS[task]
 
         data = {
             "model": model,
@@ -77,12 +77,13 @@ class ModelEvaluator:
 
         try:
             print(f"  🔄 正在呼叫 {model} 執行 {task} 任務...")
-            response = requests.post(url, headers=headers, json=data, timeout=120)
+            # 設定 timeout 為 300 秒 (5 分鐘) 因為本機可能很慢
+            response: requests.Response = requests.post(url, headers=headers, json=data, timeout=500)
             response.raise_for_status()
 
             result = response.json()
-            output_text = result["message"]["content"].strip()
-            output_text = re.sub(
+            output_text: str = result["message"]["content"].strip()
+            output_text: str = re.sub(
                 r"<think>.*?</think>", "", output_text, flags=re.DOTALL
             )
             save_to_cache(cache_key, output_text)
@@ -127,7 +128,7 @@ class ModelEvaluator:
             print(f"  🔄 正在呼叫 OpenAI API ({model})...")
 
             # 取得 temperature 設定
-            temperature = REVIEWER_TEMPERATURE.get("openai", 0.1)
+            temperature = REVIEWER_TEMPERATURE.get(model, 0.1)
 
             # 建立請求參數
             request_params = {
@@ -232,7 +233,7 @@ class ModelEvaluator:
         headers = {"Content-Type": "application/json"}
 
         # 取得 temperature 設定
-        temperature = REVIEWER_TEMPERATURE.get("gemini", 0.1)
+        temperature = REVIEWER_TEMPERATURE.get(model, 0.1)
 
         data = {
             "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_content}"}]}]
@@ -292,7 +293,7 @@ class ModelEvaluator:
         }
 
         # 取得 temperature 設定
-        temperature = REVIEWER_TEMPERATURE.get("openrouter", 0.1)
+        temperature = REVIEWER_TEMPERATURE.get(model, 0.1)
 
         data = {
             "model": model,  # e.g., "mistralai/mistral-7b-instruct"
@@ -357,7 +358,7 @@ class ModelEvaluator:
         full_prompt = f"{system_prompt}\n\nUser: {user_content}\nAssistant:"
 
         # 取得 temperature 設定
-        temperature = REVIEWER_TEMPERATURE.get("replicate", 0.1)
+        temperature = REVIEWER_TEMPERATURE.get(model_version, 0.1)
 
         input_data = {
             "prompt": full_prompt,
@@ -442,12 +443,12 @@ class ModelEvaluator:
 
         if task == "translate":
             system_prompt = """你是專業的翻譯評審專家。請根據以下標準對翻譯結果評分（1-10分）：
-
 評分標準：
 - 通順性（1-3分）：翻譯是否自然流暢，符合中文表達習慣
 - 準確性（1-3分）：是否有翻譯錯誤、遺漏或誤解
 - 遵循指令(1-2分)：是否完全遵循指令，以繁體中文回覆
 - 專業術語處理（1-2分）：英文專業術語是否適當保留
+
 
 請以以下格式回覆：
 分數: [1-10的整數]
@@ -508,21 +509,42 @@ class ModelEvaluator:
             lines = response.split("\n")
             score = 0
             comment = "無評語"
+            comment_started = False
+            comment_lines = []
+            found_score = False
+            found_comment = False
 
             for line in lines:
+                line = line.strip()
                 if line.startswith("分數:") or line.startswith("分数:"):
                     score_text = line.split(":")[1].strip()
                     score = int("".join(filter(str.isdigit, score_text)))
+                    found_score = True
                 elif line.startswith("評語:") or line.startswith("评语:"):
-                    comment = line.split(":", 1)[1].strip()
+                    # 開始收集評語，先取第一行的內容
+                    initial_comment = line.split(":", 1)[1].strip()
+                    if initial_comment:  # 如果第一行就有內容
+                        comment_lines.append(initial_comment)
+                    comment_started = True
+                    found_comment = True
+                elif comment_started and line:  # 評語開始後的非空行都是評語內容
+                    comment_lines.append(line)
 
+            # 組合評語，用空格分隔多行（避免表格格式問題）
+            if comment_lines:
+                comment = " ".join(comment_lines)
+            
+            # 如果沒有找到分數或評語，表示解析失敗
+            if not found_score and not found_comment:
+                return 1, f"解析失敗: {response[:100]}..."
+            
             # 確保分數在有效範圍內
             score = max(1, min(10, score))
             return score, comment
 
         except Exception as e:
             print(f"  ⚠️  解析評分失敗: {e}")
-            return 5, f"解析失敗: {response[:100]}..."
+            return 1, f"解析失敗: {response[:100]}..."
 
     def run_evaluation(self):
         """執行完整的評比流程"""
@@ -553,18 +575,21 @@ class ModelEvaluator:
                 time.sleep(1)
 
         # 使用評審模型評分
-        print(f"\n⚖️  開始評審階段...")
+        print("\n⚖️  開始評審階段...")
         self.evaluation_scores = {}
 
-        for reviewer_type, reviewer_model in REVIEWER_MODELS.items():
-            if reviewer_model is None:
-                continue
+        for reviewer_config in REVIEWER_MODELS:
+            reviewer_provider = reviewer_config["provider"]
+            reviewer_model = reviewer_config["model"]
+            
+            # 建立唯一的評審者識別碼 (provider_model)
+            reviewer_id = f"{reviewer_provider}_{reviewer_model.replace('/', '_').replace(':', '_').replace('-', '_')}"
 
-            print(f"\n🎯 使用評審模型: {reviewer_type} ({reviewer_model})")
-            self.evaluation_scores[reviewer_type] = {}
+            print(f"\n🎯 使用評審模型: {reviewer_provider} ({reviewer_model})")
+            self.evaluation_scores[reviewer_id] = {}
 
             for model in OLLAMA_MODELS_TO_COMPARE:
-                self.evaluation_scores[reviewer_type][model] = {}
+                self.evaluation_scores[reviewer_id][model] = {}
 
                 for task in SUPPORTED_TASKS.keys():
                     if self.results[model][task].startswith("ERROR:"):
@@ -572,14 +597,14 @@ class ModelEvaluator:
                     else:
                         print(f"  📊 評審 {model} 的 {task} 結果...")
                         score, comment = self.evaluate_with_reviewer(
-                            reviewer_type,
+                            reviewer_provider,
                             reviewer_model,
                             task,
                             input_text,
                             self.results[model][task],
                         )
 
-                    self.evaluation_scores[reviewer_type][model][task] = {
+                    self.evaluation_scores[reviewer_id][model][task] = {
                         "score": score,
                         "comment": comment,
                     }
@@ -589,29 +614,32 @@ class ModelEvaluator:
 
     def generate_report(self):
         """生成評比報表"""
-        print(f"\n📊 正在生成報表...")
-
+        print("\n📊 正在生成報表...")
+        
+        # 產生時間戳記檔名
+        timestamp = datetime.now().strftime("%Y%m%d%H%M")
+        
         # 先生成圖表
-        self.create_charts()
-
+        self.create_charts(timestamp)
+        
         # 建立報表內容
-        report_content = self.create_markdown_report()
-
+        report_content = self.create_markdown_report(timestamp)
+        
         # 寫入 Markdown 檔案
-        report_md_path = "reports/evaluation_report.md"
+        report_md_path = f"reports/evaluation_report_{timestamp}.md"
         with open(report_md_path, "w", encoding="utf-8") as f:
             f.write(report_content)
-
+        
         print(f"✅ Markdown 報表已生成: {report_md_path}")
-
+        
         # 轉換為 HTML
-        report_html_path = "reports/evaluation_report.html"
+        report_html_path = f"reports/evaluation_report_{timestamp}.html"
         convert_markdown_to_html(report_md_path, report_html_path)
         print(f"✅ HTML 報表已生成: {report_html_path}")
-
+        
         return report_md_path, report_html_path
 
-    def create_markdown_report(self) -> str:
+    def create_markdown_report(self, timestamp: str) -> str:
         """建立 Markdown 格式的報表"""
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -631,17 +659,22 @@ class ModelEvaluator:
         for i, model in enumerate(OLLAMA_MODELS_TO_COMPARE, 1):
             content += f"{i}. `{model}`\n"
 
-        content += f"\n### 評審模型\n"
-        for reviewer_type, reviewer_model in REVIEWER_MODELS.items():
-            if reviewer_model:
-                content += f"- **{reviewer_type.upper()}**: `{reviewer_model}`\n"
+        content += "\n### 評審模型\n"
+        for reviewer_config in REVIEWER_MODELS:
+            reviewer_provider = reviewer_config["provider"]
+            reviewer_model = reviewer_config["model"]
+            content += f"- **{reviewer_provider.upper()}**: `{reviewer_model}`\n"
 
         # 評分表格
-        for reviewer_type, reviewer_model in REVIEWER_MODELS.items():
-            if reviewer_model is None or reviewer_type not in self.evaluation_scores:
+        for reviewer_config in REVIEWER_MODELS:
+            reviewer_provider = reviewer_config["provider"]
+            reviewer_model = reviewer_config["model"]
+            reviewer_id = f"{reviewer_provider}_{reviewer_model.replace('/', '_').replace(':', '_').replace('-', '_')}"
+            
+            if reviewer_id not in self.evaluation_scores:
                 continue
 
-            content += f"\n## {reviewer_type.upper()} 評審結果\n\n"
+            content += f"\n## {reviewer_provider.upper()} ({reviewer_model}) 評審結果\n\n"
             content += (
                 "| 模型 | 翻譯分數 | 翻譯評語 | 摘要分數 | 摘要評語 | 平均分數 |\n"
             )
@@ -650,24 +683,24 @@ class ModelEvaluator:
             )
 
             for model in OLLAMA_MODELS_TO_COMPARE:
-                if model in self.evaluation_scores[reviewer_type]:
+                if model in self.evaluation_scores[reviewer_id]:
                     translate_score = (
-                        self.evaluation_scores[reviewer_type][model]
+                        self.evaluation_scores[reviewer_id][model]
                         .get("translate", {})
                         .get("score", 0)
                     )
                     translate_comment = (
-                        self.evaluation_scores[reviewer_type][model]
+                        self.evaluation_scores[reviewer_id][model]
                         .get("translate", {})
                         .get("comment", "N/A")
                     )
                     summarize_score = (
-                        self.evaluation_scores[reviewer_type][model]
+                        self.evaluation_scores[reviewer_id][model]
                         .get("summarize", {})
                         .get("score", 0)
                     )
                     summarize_comment = (
-                        self.evaluation_scores[reviewer_type][model]
+                        self.evaluation_scores[reviewer_id][model]
                         .get("summarize", {})
                         .get("comment", "N/A")
                     )
@@ -678,25 +711,29 @@ class ModelEvaluator:
         # 統計分析
         content += "\n## 統計分析\n\n"
 
-        for reviewer_type in REVIEWER_MODELS.keys():
-            if reviewer_type not in self.evaluation_scores:
+        for reviewer_config in REVIEWER_MODELS:
+            reviewer_provider = reviewer_config["provider"]
+            reviewer_model = reviewer_config["model"]
+            reviewer_id = f"{reviewer_provider}_{reviewer_model.replace('/', '_').replace(':', '_').replace('-', '_')}"
+            
+            if reviewer_id not in self.evaluation_scores:
                 continue
 
-            content += f"### {reviewer_type.upper()} 評審統計\n\n"
+            content += f"### {reviewer_provider.upper()} ({reviewer_model}) 評審統計\n\n"
 
             # 計算各任務平均分數
             translate_scores = []
             summarize_scores = []
 
             for model in OLLAMA_MODELS_TO_COMPARE:
-                if model in self.evaluation_scores[reviewer_type]:
+                if model in self.evaluation_scores[reviewer_id]:
                     t_score = (
-                        self.evaluation_scores[reviewer_type][model]
+                        self.evaluation_scores[reviewer_id][model]
                         .get("translate", {})
                         .get("score", 0)
                     )
                     s_score = (
-                        self.evaluation_scores[reviewer_type][model]
+                        self.evaluation_scores[reviewer_id][model]
                         .get("summarize", {})
                         .get("score", 0)
                     )
@@ -720,13 +757,17 @@ class ModelEvaluator:
         # 視覺化圖表
         content += "## 視覺化圖表\n\n"
 
-        for reviewer_type in REVIEWER_MODELS.keys():
-            if reviewer_type not in self.evaluation_scores:
+        for reviewer_config in REVIEWER_MODELS:
+            reviewer_provider = reviewer_config["provider"]
+            reviewer_model = reviewer_config["model"]
+            reviewer_id = f"{reviewer_provider}_{reviewer_model.replace('/', '_').replace(':', '_').replace('-', '_')}"
+            
+            if reviewer_id not in self.evaluation_scores:
                 continue
 
-            chart_path = f"chart_{reviewer_type}.png"
-            content += f"### {reviewer_type.upper()} 評審結果圖表\n\n"
-            content += f"![{reviewer_type.upper()} 評審結果]({chart_path})\n\n"
+            chart_path = f"chart_{reviewer_id}_{timestamp}.png"
+            content += f"### {reviewer_provider.upper()} ({reviewer_model}) 評審結果圖表\n\n"
+            content += f"![{reviewer_provider.upper()} ({reviewer_model}) 評審結果]({chart_path})\n\n"
 
         # 模型輸出結果
         content += "## 模型輸出結果\n\n"
@@ -742,12 +783,16 @@ class ModelEvaluator:
 
         return content
 
-    def create_charts(self):
+    def create_charts(self, timestamp: str):
         """生成比較圖表"""
         print("📈 正在生成圖表...")
 
-        for reviewer_type in REVIEWER_MODELS.keys():
-            if reviewer_type not in self.evaluation_scores:
+        for reviewer_config in REVIEWER_MODELS:
+            reviewer_provider = reviewer_config["provider"]
+            reviewer_model = reviewer_config["model"]
+            reviewer_id = f"{reviewer_provider}_{reviewer_model.replace('/', '_').replace(':', '_').replace('-', '_')}"
+            
+            if reviewer_id not in self.evaluation_scores:
                 continue
 
             # 準備數據
@@ -756,17 +801,17 @@ class ModelEvaluator:
             summarize_scores = []
 
             for model in OLLAMA_MODELS_TO_COMPARE:
-                if model in self.evaluation_scores[reviewer_type]:
+                if model in self.evaluation_scores[reviewer_id]:
                     models.append(
                         model.replace("hf.co/mradermacher/", "").replace(":Q4_K_M", "")
                     )
                     translate_scores.append(
-                        self.evaluation_scores[reviewer_type][model]
+                        self.evaluation_scores[reviewer_id][model]
                         .get("translate", {})
                         .get("score", 0)
                     )
                     summarize_scores.append(
-                        self.evaluation_scores[reviewer_type][model]
+                        self.evaluation_scores[reviewer_id][model]
                         .get("summarize", {})
                         .get("score", 0)
                     )
@@ -796,7 +841,7 @@ class ModelEvaluator:
 
             ax.set_xlabel("模型")
             ax.set_ylabel("分數")
-            ax.set_title(f"模型評比結果 - {reviewer_type.upper()} 評審")
+            ax.set_title(f"模型評比結果 - {reviewer_provider.upper()} ({reviewer_model}) 評審")
             ax.set_xticks(x)
             ax.set_xticklabels(models, rotation=45, ha="right")
             ax.legend()
@@ -819,7 +864,7 @@ class ModelEvaluator:
             autolabel(bars2)
 
             plt.tight_layout()
-            chart_path = f"reports/chart_{reviewer_type}.png"
+            chart_path = f"reports/chart_{reviewer_id}_{timestamp}.png"
             plt.savefig(chart_path, dpi=300, bbox_inches="tight")
             plt.close()
 
@@ -836,7 +881,7 @@ def main():
         print("❌ 未設定要評比的模型，請檢查 config.py")
         sys.exit(1)
 
-    if not any(REVIEWER_MODELS.values()):
+    if not REVIEWER_MODELS:
         print("❌ 未設定評審模型，請檢查 config.py")
         sys.exit(1)
 

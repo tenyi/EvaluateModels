@@ -132,7 +132,7 @@ def convert_markdown_to_html(input_path, output_path=None):
     # 檢查輸入檔案是否存在
     if not os.path.exists(input_path):
         print(f"錯誤：找不到輸入檔案 '{input_path}'", file=sys.stderr)
-        sys.exit(1)
+        raise FileNotFoundError(f"找不到輸入檔案 '{input_path}'")
 
     # 如果未指定輸出檔名，則自動生成
     base_name_without_ext = os.path.splitext(input_path)[0]
@@ -187,7 +187,7 @@ def convert_markdown_to_html(input_path, output_path=None):
 
     except Exception as e:
         print(f"轉換過程中發生錯誤：{e}", file=sys.stderr)
-        sys.exit(1)
+        raise
 
 if __name__ == "__main__":
     # 解析命令列參數

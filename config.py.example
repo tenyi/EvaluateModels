@@ -9,27 +9,39 @@ OPENROUTER_API_KEY = "your_openrouter_api_key_here"  # 新增 OpenRouter API 金
 REPLICATE_API_KEY = "your_replicate_api_key_here"  # 新增 Replicate API 金鑰
 
 # 配置審閱者模型
-# 範例: {"openai": "gpt-4o-mini", "gemini": "gemini-1.5-flash-latest", "deepseek": "deepseek-chat", "openrouter": "mistralai/mistral-7b-instruct", "replicate": "owner/model_name:version"}
-REVIEWER_MODELS = {
-    "openai": None,  # 例如: "gpt-4o-mini"
-    "gemini": None,  # 例如: "gemini-1.5-flash-latest"
-    "deepseek": None,  # 例如: "deepseek-chat"
-    "openrouter": None, # 例如: "mistralai/mistral-7b-instruct" 或 "xai-research/grok-1"
-    "replicate": None, # 例如: "meta/meta-llama-3-70b-instruct:096394a330869f80fc22939960bb01f805051b6558178033ab8403439211786e"
-}
+# 新格式：支援同一個 provider 使用多個不同模型
+# 每個元素包含 provider 和 model 資訊
+REVIEWER_MODELS = [
+    {"provider": "openai", "model": "gpt-4o-mini"},          # 例如: OpenAI 的 gpt-4o-mini
+    {"provider": "openai", "model": "gpt-4.1"},             # 例如: OpenAI 的 gpt-4.1
+    {"provider": "openai", "model": "o4-mini"},             # 例如: OpenAI 的 o4-mini
+    {"provider": "gemini", "model": "gemini-1.5-flash-latest"}, # 例如: Google 的 gemini-1.5-flash-latest
+    {"provider": "gemini", "model": "gemini-2.5-pro"},      # 例如: Google 的 gemini-2.5-pro
+    # {"provider": "deepseek", "model": "deepseek-chat"},   # 例如: DeepSeek 的 deepseek-chat
+    # {"provider": "openrouter", "model": "mistralai/mistral-7b-instruct"}, # 例如: OpenRouter 的模型
+    # {"provider": "replicate", "model": "meta/meta-llama-3-70b-instruct:version"}, # 例如: Replicate 的模型
+]
+
+# 如果要停用某個評審模型，可以註解掉對應行，或設為空 list：
+# REVIEWER_MODELS = []
 
 # 配置各評審模型的 temperature 參數
 # 某些模型（如 O3/O4 系列）不允許用戶指定 temperature 參數
 # 如果模型不支援自定義 temperature，請設為 1，系統會跳過此參數
 # 設為 None 或其他值時，會正常傳入該 temperature 值
+# 現在以模型名稱為 key，而非 provider
 REVIEWER_TEMPERATURE = {
-    "openai": 0.1,      # 一般 OpenAI 模型可調整
-    "gemini": 0.1,      # Google Gemini 模型可調整
-    "deepseek": 0.1,    # DeepSeek 模型可調整
-    "openrouter": 0.1,  # OpenRouter 模型可調整
-    "replicate": 0.1,   # Replicate 模型可調整
-    # 對於不允許指定 temperature 的模型（如 O3/O4），請設為 1：
-    # "openai": 1,      # 不傳入 temperature 參數，使用模型預設值
+    "gpt-4o-mini": 0.1,         # 一般 OpenAI 模型可調整
+    "gpt-4.1": 0.3,               # GPT 系列模型允許指定 temperature
+    "o4-mini": 1,               # O4 系列不允許指定 temperature
+    "gemini-2.5-flash-latest": 0.1,  # Google Gemini 模型可調整
+    "gemini-2.5-pro": 0.1,      # Google Gemini 模型可調整
+    "deepseek-chat": 0.1,       # DeepSeek 模型可調整
+    "mistralai/mistral-7b-instruct": 0.1,  # OpenRouter 模型可調整
+    "meta/meta-llama-3-70b-instruct:version": 0.1,  # Replicate 模型可調整
+    # 對於不允許指定 temperature 的模型，請設為 1：
+    # "o3-mini": 1,             # 不傳入 temperature 參數，使用模型預設值
+    # "o3": 1,                  # 不傳入 temperature 參數，使用模型預設值
 }
 
 # 支援的任務及其提示詞

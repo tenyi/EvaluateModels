@@ -26,6 +26,8 @@ def load_from_cache(key: str) -> str | None:
 
 def save_to_cache(key: str, data: str) -> None:
     """Saves data to a cache file."""
+    import time
+    
     if not os.path.exists(CACHE_DIR):
         try:
             os.makedirs(CACHE_DIR)
@@ -35,7 +37,11 @@ def save_to_cache(key: str, data: str) -> None:
 
     cache_file_path = os.path.join(CACHE_DIR, f"{key}.json")
     try:
+        cache_data = {
+            "content": data,
+            "timestamp": time.time()
+        }
         with open(cache_file_path, 'w', encoding='utf-8') as f:
-            json.dump({"content": data}, f, ensure_ascii=False, indent=4)
+            json.dump(cache_data, f, ensure_ascii=False, indent=4)
     except Exception as e:
         print(f"⚠️  Error saving to cache file {cache_file_path}: {e}")
