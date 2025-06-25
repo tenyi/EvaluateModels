@@ -1,4 +1,3 @@
-
 OLLAMA_API_BASE_URL = "http://localhost:11434"
 OLLAMA_MODELS_TO_COMPARE = ["llama2", "gemma"] # 例如: ["llama2", "mistral"]
 
@@ -17,6 +16,20 @@ REVIEWER_MODELS = {
     "deepseek": None,  # 例如: "deepseek-chat"
     "openrouter": None, # 例如: "mistralai/mistral-7b-instruct" 或 "xai-research/grok-1"
     "replicate": None, # 例如: "meta/meta-llama-3-70b-instruct:096394a330869f80fc22939960bb01f805051b6558178033ab8403439211786e"
+}
+
+# 配置各評審模型的 temperature 參數
+# 某些模型（如 O3/O4 系列）不允許用戶指定 temperature 參數
+# 如果模型不支援自定義 temperature，請設為 1，系統會跳過此參數
+# 設為 None 或其他值時，會正常傳入該 temperature 值
+REVIEWER_TEMPERATURE = {
+    "openai": 0.1,      # 一般 OpenAI 模型可調整
+    "gemini": 0.1,      # Google Gemini 模型可調整
+    "deepseek": 0.1,    # DeepSeek 模型可調整
+    "openrouter": 0.1,  # OpenRouter 模型可調整
+    "replicate": 0.1,   # Replicate 模型可調整
+    # 對於不允許指定 temperature 的模型（如 O3/O4），請設為 1：
+    # "openai": 1,      # 不傳入 temperature 參數，使用模型預設值
 }
 
 # 支援的任務及其提示詞
